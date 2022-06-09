@@ -1,13 +1,15 @@
 # disclaimer: this script maked for simple cryptography educational purposes only, 
 # do not use it for evil! make world more secure!
 import os
-import itertools
 import sys
 
-FRAMESIZE= 49*3
 SUPERN = 6
+FRAMEN = 3 
 SAMPLESIZE = 49
+FRAMESIZE= SAMPLESIZE*FRAMEN
 SILENCECODE = 124
+MINKEYSIZE = 10
+MAXKEYSIZE = 256
 
 #some global variables, ups
 superarray  = []
@@ -45,25 +47,25 @@ def sample2bits(s):
 
 def bits2sample(bits):
     res = []
-    for i in range(0,48,8):
+    for i in range(0,SAMPLESIZE-1,8):
         res.append(bits2byte(bits[i:i+8]))
-    res.append(bits[48])
+    res.append(bits[SAMPLESIZE-1])
     return res
 
 def bits2samples():
     mbe = []
     for i in range(0, len(superarray)):
-        for j in range(0, 18):
-            sbits = superarray[i]["cryptotext"][j*49:j*49+49]
+        for j in range(0, SUPERN*FRAMEN):
+            sbits = superarray[i]["cryptotext"][j*SAMPLESIZE:j*SAMPLESIZE+SAMPLESIZE]
             mbe.append(bits2sample(sbits))
     return mbe
 
 def samples2bits():
     k = 0
-    for i in range(0,len(mbesamples), 6*3):
+    for i in range(0,len(mbesamples), SUPERN*FRAMEN):
         item = {}
         item["cryptotext"]= []
-        for j in range(0,6*3):
+        for j in range(0,SUPERN*FRAMEN):
             item["cryptotext"] += sample2bits(mbesamples[i+j])
         superarray.append(item)    
     #print(superarray[0]["seq"])        
@@ -133,8 +135,8 @@ def stat1(xr=0, printflag=False, graph=False, j=0):
     for i in range(0,255):
         statdict[i] = 0
     for i in range(0, len(superarray)):
-        #for j in range(0,18):
-            text = superarray[i]["cryptotext"][j*49:j*49+49]
+        #for j in range(0,SUPERN*FRAMEN):
+            text = superarray[i]["cryptotext"][j*SAMPLESIZE:j*SAMPLESIZE+SAMPLESIZE]
             statitem = getb0(text)
             if statitem==0: continue
             statitem = statitem ^ xr
@@ -165,7 +167,7 @@ def stat1(xr=0, printflag=False, graph=False, j=0):
 # get keystream parts
 def statsearch():
     res = []
-    for j in range(0,18):
+    for j in range(0,SUPERN*FRAMEN):
         maxkey = stat1(xr=0,j=j)
         ks = maxkey ^ SILENCECODE
         res.append(ks)
@@ -177,7 +179,7 @@ def dumparray(fname):
     for t in superarray:
         k = 0
         for i in t["cryptotext"]:
-            if k%49==0:
+            if k%SAMPLESIZE==0:
                 f.write("-")
             f.write(str(i))
             k+=1
@@ -185,20 +187,20 @@ def dumparray(fname):
     f.close()                
 
 ## set 
-def setkeystream_B0(ks,b0,j):
-    ks[0  +49*j]  = (b0 >> 6) & 1
-    ks[1  +49*j]  = (b0 >> 5) & 1
-    ks[2  +49*j]  = (b0 >> 4) & 1
-    ks[3  +49*j]  = (b0 >> 3) & 1
-    ks[37 +49*j]  = (b0 >> 2) & 1
-    ks[38 +49*j]  = (b0 >> 1) & 1
-    ks[39 +49*j]  = b0 & 1
+def setkeystreamX_B0(ks,b0,j):
+    ks[0  +SAMPLESIZE*j]  = (b0 >> 6) & 1
+    ks[1  +SAMPLESIZE*j]  = (b0 >> 5) & 1
+    ks[2  +SAMPLESIZE*j]  = (b0 >> 4) & 1
+    ks[3  +SAMPLESIZE*j]  = (b0 >> 3) & 1
+    ks[37 +SAMPLESIZE*j]  = (b0 >> 2) & 1
+    ks[38 +SAMPLESIZE*j]  = (b0 >> 1) & 1
+    ks[39 +SAMPLESIZE*j]  = b0 & 1
 
 #### guessing key len
 def guesskeylen(xks):
     maxres = 0
     maxres_i = 0
-    for i in range(10, 256):
+    for i in range(MINKEYSIZE, MAXKEYSIZE):
         breakflag = False
         res = 0
         kchunks = len(xks) // i
@@ -253,15 +255,15 @@ def main():
     print("Loading data from " + sys.argv[1])
     loadmbedir(sys.argv[1])
     samples2bits()
-    if len(superarray) < 100:
-        print("Sorry, need more samples for good statistics")
-        exit()
+#    if len(superarray) < 100:
+#        print("Sorry, need more samples for good statistics")
+#        exit()
 
     print("Calculating...")
     res= statsearch()
-    ksx = ["x"]*882
-    for j in range(0,18):
-        setkeystream_B0(ksx,res[j],j)
+    ksx = ["x"]*SUPERN*FRAMEN*SAMPLESIZE
+    for j in range(0,SUPERN*FRAMEN):
+        setkeystreamX_B0(ksx,res[j],j)
 
     ksxstr = bitlist2str(ksx)
     print("keystreamX=",ksxstr)
