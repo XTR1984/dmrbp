@@ -90,7 +90,7 @@ def loadmbedir(rootdir):
 def savembe(fname):
     assert ".amb" in fname
     f = open(fname, "wb")
-    f.write(bytearray(".amb",encoding="ascii"))
+    f.write(b".amb")
     mbe = bits2samples()
     for m in mbe:
         f.write(b'\0')
@@ -267,8 +267,10 @@ def main():
 
     ksxstr = bitlist2str(ksx)
     print("keystreamX=",ksxstr)
-
     keylen = guesskeylen(ksx)
+    if keylen == 0:
+        print("Ups, no guess")
+        exit()
     print("guess key length is: ", keylen)            
     printchunks(ksx,keylen)
     key = assemblekey(ksx, keylen)

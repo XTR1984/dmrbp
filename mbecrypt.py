@@ -1,11 +1,14 @@
 # test encrypting for decrypt
 from dmrbp import *
 import sys
+import random
 
-
-loadmbe("samples/input.amb")
+KEYLEN = 128
+loadmbe("samples/output.amb")
 samples2bits()
-key =[0,1,0,1,1,1,1,1,1]
+key = []
+for i in range(0,KEYLEN):
+    key.append(random.randint(0,1))
 print("key=",bitlist2str(key))
 ks = makekeystream(key)
 print("keylen= ", len(key))
